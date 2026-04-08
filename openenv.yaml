@@ -1,0 +1,3 @@
+name: complaint-env
+description: AI complaint resolution environment
+entrypoint: app.main:app
