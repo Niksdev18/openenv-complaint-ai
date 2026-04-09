@@ -5,13 +5,13 @@ import os
 import requests
 import json
 
-# ✅ Safe OpenAI import
+# Safe OpenAI import
 try:
     from openai import OpenAI
 except:
     OpenAI = None
 
-# ✅ Safe API key handling
+# Safe API key handling
 api_key = os.getenv("OPENAI_API_KEY")
 client = None
 
@@ -23,9 +23,9 @@ if OpenAI and api_key:
 
 BASE_URL = "http://127.0.0.1:8000"
 
-# ✅ Safe action generator
+# Safe action generator
 def get_action(observation):
-    # 🔥 Fallback if no API key (VERY IMPORTANT)
+    # Fallback if no API key
     if client is None:
         return {"action_type": "classify", "value": "infrastructure"}
 
@@ -47,36 +47,47 @@ Return JSON:
         )
         return json.loads(res.choices[0].message.content)
     except:
-        # 🔥 fallback if API fails
         return {"action_type": "classify", "value": "infrastructure"}
 
-# ✅ Safe main execution
-def main():
-    print("🚀 Starting AI agent...")
 
+# 🔥 CRITICAL: Structured output main
+def main():
     try:
         r = requests.get(f"{BASE_URL}/reset", timeout=10)
         result = r.json()
 
-        print("Complaint:", result["observation"]["complaint"])
+        task_name = "complaint"
+
+        # START block
+        print(f"[START] task={task_name}", flush=True)
+
+        steps = 0
+        total_reward = 0.0
 
         for i in range(5):
             action = get_action(result["observation"])
-            print(f"Step {i+1} Action:", action)
 
             r = requests.post(f"{BASE_URL}/step", json=action, timeout=10)
             result = r.json()
 
-            print("Reward:", result.get("reward", 0))
+            reward = float(result.get("reward", 0))
+            total_reward += reward
+            steps += 1
+
+            # STEP block
+            print(f"[STEP] step={steps} reward={reward}", flush=True)
 
             if result.get("done"):
-                print("✅ Task completed")
                 break
 
-    except Exception as e:
-        # 🔥 IMPORTANT: never crash
-        print("Error occurred:", e)
+        # END block
+        print(f"[END] task={task_name} score={total_reward} steps={steps}", flush=True)
 
-# ✅ Entry point
+    except Exception:
+        # Even on error, print valid structure
+        print("[START] task=error", flush=True)
+        print("[END] task=error score=0 steps=0", flush=True)
+
+
 if __name__ == "__main__":
     main()
